@@ -1,0 +1,16 @@
+{
+  "language": "auto",
+  "first_agent": "claude",
+  "max_turns": 10,
+  "claude": {
+    "command": "claude",
+    "args": ["--print", "--output-format", "text", "--input-format", "text"],
+    "extra_prompt": "This is an intense battle. Be ruthless. Find every possible flaw. No mercy."
+  },
+  "codex": {
+    "command": "codex",
+    "args": ["--approval-mode", "never", "--quiet"],
+    "extra_prompt": "This is an intense battle. Be ruthless. Find every possible flaw. No mercy."
+  },
+  "prompt_template": "default"
+}

@@ -1,13 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readFile } from "@tauri-apps/plugin-fs";
 
 // ─── DOM Elements ─────────────────────────────────────────────────────────────
+const profileSelect = document.getElementById("profile-select") as HTMLSelectElement;
+const profileInfo = document.getElementById("profile-info") as HTMLSpanElement;
 const targetFileInput = document.getElementById("target-file") as HTMLInputElement;
 const browseBtn = document.getElementById("browse-btn") as HTMLButtonElement;
-const firstAgentSelect = document.getElementById("first-agent") as HTMLSelectElement;
-const maxTurnsInput = document.getElementById("max-turns") as HTMLInputElement;
 const startBtn = document.getElementById("start-btn") as HTMLButtonElement;
 const cancelBtn = document.getElementById("cancel-btn") as HTMLButtonElement;
 const statusBar = document.getElementById("status-bar") as HTMLDivElement;
@@ -31,6 +30,11 @@ function setStatus(text: string, cls: string) {
   statusBar.innerHTML = `<span class="${cls}">${text}</span>`;
 }
 
+function updateProfileInfo(profile: any) {
+  const langLabel = profile.language === "auto" ? "CLI default" : profile.language;
+  profileInfo.textContent = `First: ${profile.first_agent} | Turns: ${profile.max_turns} | Lang: ${langLabel} | Template: ${profile.prompt_template}`;
+}
+
 function renderReview(agent: string, turn: number, reviewText: string, timestamp: string) {
   const container = agent === "claude" ? claudeOutput : codexOutput;
   const countEl = agent === "claude" ? claudeTurnCount : codexTurnCount;
@@ -52,7 +56,6 @@ function renderReview(agent: string, turn: number, reviewText: string, timestamp
   container.appendChild(card);
   container.scrollTop = container.scrollHeight;
 
-  // Update count
   const count = container.querySelectorAll(".review-card").length;
   countEl.textContent = `${count} verse${count !== 1 ? "s" : ""}`;
 }
@@ -60,17 +63,44 @@ function renderReview(agent: string, turn: number, reviewText: string, timestamp
 function clearPanes() {
   claudeOutput.innerHTML = '<div class="placeholder">Claude Code will drop verses here</div>';
   codexOutput.innerHTML = '<div class="placeholder">Codex will drop verses here</div>';
-  claudeTurnCount.textContent = "0 reviews";
-  codexTurnCount.textContent = "0 reviews";
+  claudeTurnCount.textContent = "0 verses";
+  codexTurnCount.textContent = "0 verses";
 }
 
 function setRunning(running: boolean) {
   startBtn.disabled = running;
   cancelBtn.disabled = !running;
   targetFileInput.disabled = running;
-  firstAgentSelect.disabled = running;
-  maxTurnsInput.disabled = running;
+  profileSelect.disabled = running;
   browseBtn.disabled = running;
+}
+
+// ─── Profile loading ───────────────────────────────────────────────────────────
+async function loadProfiles() {
+  const profiles = await invoke<string[]>("list_config_profiles");
+  profileSelect.innerHTML = "";
+  for (const p of profiles) {
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.textContent = p;
+    profileSelect.appendChild(opt);
+  }
+  // Load default profile
+  if (profiles.includes("default")) {
+    profileSelect.value = "default";
+  }
+  await onProfileChange();
+}
+
+async function onProfileChange() {
+  const profileName = profileSelect.value;
+  try {
+    const state = await invoke<any>("load_profile_cmd", { profileName });
+    updateProfileInfo(state.profile);
+    log(`Loaded profile: ${profileName}`);
+  } catch (e: any) {
+    log(`Failed to load profile ${profileName}: ${e}`, "error");
+  }
 }
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
@@ -80,15 +110,15 @@ async function setupListeners() {
   unlisteners.push(
     await listen("review-turn-start", (event) => {
       const state = event.payload as any;
-      log(`Turn ${state.current_turn}/${state.config.max_turns} starting...`);
-      setStatus(`⚡ Turn ${state.current_turn}/${state.config.max_turns} — battle in progress`, "status-running");
+      log(`Turn ${state.current_turn}/${state.profile.max_turns} starting...`);
+      setStatus(`⚡ Turn ${state.current_turn}/${state.profile.max_turns} — battle in progress`, "status-running");
     })
   );
 
   unlisteners.push(
     await listen("review-agent-start", (event) => {
       const d = event.payload as any;
-      log(`${d.agent} is ${d.phase === "review" ? "reviewing" : "counter-reviewing"} (turn ${d.turn})...`);
+      log(`${d.agent} is reviewing (turn ${d.turn})...`);
     })
   );
 
@@ -118,7 +148,7 @@ async function setupListeners() {
     await listen("review-complete", (event) => {
       const state = event.payload as any;
       log(`Battle complete! ${state.turns.length} verses dropped.`, "success");
-      setStatus(`✅ Battle complete — ${state.turns.length} verses across ${state.config.max_turns} turns`, "status-complete");
+      setStatus(`✅ Battle complete — ${state.turns.length} verses across ${state.profile.max_turns} turns`, "status-complete");
       setRunning(false);
     })
   );
@@ -144,6 +174,8 @@ browseBtn.addEventListener("click", async () => {
   }
 });
 
+profileSelect.addEventListener("change", onProfileChange);
+
 startBtn.addEventListener("click", async () => {
   const targetFile = targetFileInput.value.trim();
   if (!targetFile) {
@@ -153,15 +185,12 @@ startBtn.addEventListener("click", async () => {
 
   const config = {
     target_file: targetFile,
-    first_agent: firstAgentSelect.value,
-    max_turns: parseInt(maxTurnsInput.value) || 3,
-    claude_system_prompt: null as string | null,
-    codex_system_prompt: null as string | null,
+    profile: profileSelect.value,
   };
 
   clearPanes();
   logContent.innerHTML = "";
-  log(`Starting battle: ${config.first_agent} goes first, ${config.max_turns} turns, file: ${config.target_file}`);
+  log(`Starting battle: profile=${config.profile}, file: ${config.target_file}`);
   setStatus("⚡ Battle starting...", "status-running");
   setRunning(true);
 
@@ -183,5 +212,7 @@ cancelBtn.addEventListener("click", async () => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 setupListeners().then(() => {
   log("Adversarial Review Arena ready.");
-  log("Select a file, choose first agent and turns, then click Start Battle.");
+  loadProfiles().then(() => {
+    log("Profiles loaded. Select a file and profile, then click Start Battle.");
+  });
 });

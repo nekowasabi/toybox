@@ -1,0 +1,16 @@
+{
+  "language": "auto",
+  "first_agent": "claude",
+  "max_turns": 3,
+  "claude": {
+    "command": "claude",
+    "args": ["--print", "--output-format", "text", "--input-format", "text"],
+    "extra_prompt": null
+  },
+  "codex": {
+    "command": "codex",
+    "args": ["--approval-mode", "never", "--quiet"],
+    "extra_prompt": null
+  },
+  "prompt_template": "default"
+}

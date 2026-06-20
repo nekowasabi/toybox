@@ -1,0 +1,16 @@
+{
+  "language": "ja",
+  "first_agent": "claude",
+  "max_turns": 3,
+  "claude": {
+    "command": "claude",
+    "args": ["--print", "--output-format", "text", "--input-format", "text"],
+    "extra_prompt": "日本語で回答してください。コードレビューの技術的な正確さを保ちつつ、相手をディスるフリースタイルラップの形式で出力してください。"
+  },
+  "codex": {
+    "command": "codex",
+    "args": ["--approval-mode", "never", "--quiet"],
+    "extra_prompt": "日本語で回答してください。コードレビューの技術的な正確さを保ちつつ、相手をディスるフリースタイルラップの形式で出力してください。"
+  },
+  "prompt_template": "freestyle"
+}

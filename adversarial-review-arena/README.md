@@ -4,52 +4,77 @@
 
 ## What It Does
 
-1. Pick a target source file.
-2. Choose which agent goes first (Claude Code or Codex).
-3. Set the number of review turns.
-4. Hit **Start Battle** — the two agents take turns reviewing the file and then critiquing each other's reviews, getting progressively more adversarial each turn.
+1. Pick a **profile** (config preset) and a target source file.
+2. Hit **Start Battle** — the two agents take turns reviewing the file, getting progressively more adversarial each turn.
+3. Each review is delivered as a **rap verse** with real rhymes and technical content.
 
-### 🎤 Freestyle Rap Battle Format
+## Configuration — `.config/` directory
 
-Each review is delivered as a **rap verse** with real rhymes:
-
-- Every verse must follow rhyme schemes (AABB, ABAB, etc.)
-- Technical code review content is mixed with rap wordplay and disses
-- Counter-verses call out what the opponent missed — in rhyme
-- The battle escalates each turn: harder disses, deeper analysis
-- 8-16 bars minimum per verse, but the code review must be genuinely useful
-
-Example flow:
-```
-Turn 1 — Claude Code (opening verse):
-  "Your error handling's weak, exceptions you don't catch,
-   Line 42's a memory leak, a bug you can't detach..."
-
-Turn 1 — Codex (counter-verse):
-  "Claude missed the SQL injection on line fifteen,
-   Your review's as weak as your code has been..."
-```
-
-The UI shows a split view:
+Profiles are stored as directories under `.config/`. Each profile has:
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Config Bar: [File] [First Agent] [Turns] [▶]   │
-├─────────────────────────────────────────────────┤
-│  Status: ⚡ Turn 2/3 — battle in progress        │
-├──────────────────────┬──────────────────────────┤
-│  🤖 Claude Code      │  ⚡ Codex               │
-│                      │                          │
-│  Turn 1 review...    │  Turn 1 counter-review.. │
-│  Turn 2 review...    │  Turn 2 counter-review.. │
-│                      │                          │
-├──────────────────────┴──────────────────────────┤
-│  Battle Log                                      │
-│  10:42 Turn 1 starting...                        │
-│  10:43 claude completed review for turn 1        │
-│  10:45 Turn 1 complete — both agents reviewed   │
-└─────────────────────────────────────────────────┘
+.config/
+├── default/
+│   ├── arena.json       # Settings: language, first_agent, max_turns, agent commands
+│   └── prompt.txt       # Prompt template with {placeholders}
+├── slack/
+│   ├── arena.json       # Japanese language, freestyle template
+│   └── prompt.txt       # Japanese prompt template
+├── freestyle/
+│   ├── arena.json       # English freestyle rap, 5 turns
+│   └── prompt.txt       # English rap battle prompt
+└── battle/
+    ├── arena.json       # Intense battle, 10 turns, no rhyming required
+    └── prompt.txt       # Standard adversarial review prompt
 ```
+
+### arena.json
+
+```json
+{
+  "language": "auto",       // "auto" = use each CLI's default language; "ja", "en", etc. = override
+  "first_agent": "claude",  // who goes first: "claude" or "codex"
+  "max_turns": 3,           // total review rounds
+  "claude": {
+    "command": "claude",
+    "args": ["--print", "--output-format", "text", "--input-format", "text"],
+    "extra_prompt": null    // extra instructions appended to prompt (or null)
+  },
+  "codex": {
+    "command": "codex",
+    "args": ["--approval-mode", "never", "--quiet"],
+    "extra_prompt": null
+  },
+  "prompt_template": "default"  // references prompt.txt in the same directory
+}
+```
+
+### prompt.txt placeholders
+
+| Placeholder | Replaced with |
+|---|---|
+| `{reviewer_name}` | "claude" or "codex" |
+| `{reviewee_name}` | The opponent's name |
+| `{target_file}` | Path to the target file |
+| `{file_content}` | Contents of the target file |
+| `{turn}` | Current turn number (1-based) |
+| `{max_turns}` | Total turns from config |
+| `{language_instruction}` | Auto-generated language directive (or empty for "auto") |
+| `{extra_prompt}` | Contents of `extra_prompt` from arena.json (or empty) |
+
+### Language behavior
+
+- `"auto"` — No language directive is added. Each CLI outputs in whatever language it's configured to use.
+- `"ja"` — Adds `重要: 日本語で回答してください。` to the prompt.
+- `"en"` — Adds `Important: Respond in English.` to the prompt.
+- Any other value — Adds `Important: Respond in {language}.` to the prompt.
+
+### Adding a custom profile
+
+1. Create `.config/my-profile/` directory
+2. Add `arena.json` with your settings
+3. Add `prompt.txt` with your prompt template
+4. The profile appears automatically in the UI dropdown
 
 ## Requirements
 
@@ -74,69 +99,41 @@ npm run tauri dev
 npm run tauri build
 ```
 
-## How It Works
-
-### Review Flow
-
-Each **turn** consists of two phases:
-
-1. **Review phase**: The first agent reviews the target file (or counter-reviews the previous turn's last review).
-2. **Counter-review phase**: The second agent reviews the same file AND critiques the first agent's review.
-
-The next turn flips: the second agent reviews first, then the first agent counter-reviews.
-
-Each turn gets progressively more adversarial — agents are prompted to find flaws the other missed, call out incorrect claims, and dig deeper.
-
-### Prompts
-
-The Rust backend (`src-tauri/src/lib.rs`) constructs **freestyle rap battle** prompts that instruct each agent to:
-
-- Write verses with real rhyme schemes (AABB, ABAB, etc.)
-- Find logic bugs, edge cases, error handling issues
-- Identify security vulnerabilities
-- Spot performance problems (O(n²) traps, leaks)
-- Call out maintainability issues (naming, structure, DRY)
-- Check for idiomatic/style violations
-- Diss the opponent's review for accuracy and completeness — in rhyme
-- Escalate the battle each turn with harder disses and deeper analysis
-
-### Agent Invocation
-
-Agents are invoked via their CLIs as shell commands through Tauri's `tauri-plugin-shell`:
-
-- **Claude Code**: `claude --print --output-format text --input-format text "<prompt>"`
-- **Codex**: `codex --approval-mode never --quiet "<prompt>"`
-
-## Configuration
-
-Custom system prompts can be added per-agent in the Rust `ReviewConfig` struct. The UI exposes:
-
-| Setting       | Description                              |
-|---------------|------------------------------------------|
-| Target File   | File to review (file picker dialog)      |
-| First Agent   | Claude Code or Codex goes first          |
-| Max Turns     | Total review rounds (1-20)               |
-
 ## Architecture
 
 ```
 adversarial-review-arena/
-├── package.json              # Frontend deps
-├── vite.config.ts            # Vite config
+├── .config/                        # Profile-based configuration
+│   ├── default/                    # Default profile
+│   │   ├── arena.json              # Settings
+│   │   └── prompt.txt              # Prompt template
+│   ├── slack/                      # Japanese language profile
+│   ├── freestyle/                  # English rap battle profile
+│   └── battle/                     # Intense 10-turn battle
+├── package.json
+├── vite.config.ts
 ├── tsconfig.json
-├── src/                      # Frontend (TypeScript + HTML + CSS)
-│   ├── index.html
-│   ├── main.ts              # UI logic, Tauri event handling
-│   └── styles.css           # Dark theme split-pane layout
-└── src-tauri/                # Backend (Rust)
+├── src/                            # Frontend (TypeScript + HTML + CSS)
+│   ├── index.html                  # Split-pane UI with profile selector
+│   ├── main.ts                     # UI logic, Tauri event handling
+│   └── styles.css                   # Dark theme
+└── src-tauri/                      # Backend (Rust)
     ├── Cargo.toml
     ├── build.rs
-    ├── tauri.conf.json      # Tauri config, shell permissions
-    ├── icons/
+    ├── tauri.conf.json             # Tauri config, shell permissions
     └── src/
-        ├── main.rs          # Entry point
-        └── lib.rs           # Core: ReviewConfig, prompt builder, agent runner, orchestration loop
+        ├── main.rs                  # Entry point
+        └── lib.rs                   # Config loading, prompt builder, agent runner, orchestration
 ```
+
+## Review Flow
+
+Each **turn** consists of two phases (no counter-verse for now — just alternating reviews):
+
+1. First agent reviews the target file
+2. Second agent reviews the same file
+
+The next turn repeats with the same order. Each turn uses the same prompt template, so the adversarial nature comes from the prompt instructions themselves.
 
 ## Notes
 

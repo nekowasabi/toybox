@@ -95,6 +95,16 @@ input:focus, select:focus, input:focus-visible {
 .btn-primary { background: var(--accent-primary); color: white; }
 .btn-danger { background: var(--accent-danger); color: white; }
 
+/* ─── Profile Bar ──────────────────────────────────────────────────────────── */
+.profile-bar {
+  padding: 4px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
 /* ─── Status Bar ──────────────────────────────────────────────────────────── */
 .status-bar {
   padding: 6px 20px;
