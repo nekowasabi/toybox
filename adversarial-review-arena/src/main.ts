@@ -43,7 +43,7 @@ function renderReview(agent: string, turn: number, reviewText: string, timestamp
   card.className = "review-card";
   card.innerHTML = `
     <div class="review-card-header">
-      <span class="review-card-title">Turn ${turn} — ${agent === "claude" ? "🤖 Claude Code" : "⚡ Codex"}</span>
+      <span class="review-card-title">Verse ${turn} — ${agent === "claude" ? "🎤 Claude Code" : "🎙 Codex"}</span>
       <span class="review-card-meta">${new Date(timestamp).toLocaleString()}</span>
     </div>
     <div class="review-text"></div>
@@ -54,12 +54,12 @@ function renderReview(agent: string, turn: number, reviewText: string, timestamp
 
   // Update count
   const count = container.querySelectorAll(".review-card").length;
-  countEl.textContent = `${count} review${count !== 1 ? "s" : ""}`;
+  countEl.textContent = `${count} verse${count !== 1 ? "s" : ""}`;
 }
 
 function clearPanes() {
-  claudeOutput.innerHTML = '<div class="placeholder">Claude Code reviews will appear here</div>';
-  codexOutput.innerHTML = '<div class="placeholder">Codex reviews will appear here</div>';
+  claudeOutput.innerHTML = '<div class="placeholder">Claude Code will drop verses here</div>';
+  codexOutput.innerHTML = '<div class="placeholder">Codex will drop verses here</div>';
   claudeTurnCount.textContent = "0 reviews";
   codexTurnCount.textContent = "0 reviews";
 }
@@ -98,7 +98,7 @@ async function setupListeners() {
       const lastTurn = state.turns[state.turns.length - 1];
       if (lastTurn) {
         renderReview(lastTurn.reviewer, lastTurn.turn_number, lastTurn.review_text, lastTurn.timestamp);
-        log(`${lastTurn.reviewer} completed review for turn ${lastTurn.turn_number}`, "success");
+        log(`${lastTurn.reviewer} dropped a verse for turn ${lastTurn.turn_number}`, "success");
       }
     })
   );
@@ -109,7 +109,7 @@ async function setupListeners() {
       const lastTurn = state.turns[state.turns.length - 1];
       if (lastTurn) {
         renderReview(lastTurn.reviewer, lastTurn.turn_number, lastTurn.review_text, lastTurn.timestamp);
-        log(`Turn ${lastTurn.turn_number} complete — both agents have reviewed`, "success");
+        log(`Turn ${lastTurn.turn_number} complete — both verses dropped`, "success");
       }
     })
   );
@@ -117,8 +117,8 @@ async function setupListeners() {
   unlisteners.push(
     await listen("review-complete", (event) => {
       const state = event.payload as any;
-      log(`Battle complete! ${state.turns.length} reviews generated.`, "success");
-      setStatus(`✅ Battle complete — ${state.turns.length} reviews across ${state.config.max_turns} turns`, "status-complete");
+      log(`Battle complete! ${state.turns.length} verses dropped.`, "success");
+      setStatus(`✅ Battle complete — ${state.turns.length} verses across ${state.config.max_turns} turns`, "status-complete");
       setRunning(false);
     })
   );

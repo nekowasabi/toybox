@@ -95,47 +95,56 @@ fn build_review_prompt(
     extra_prompt: Option<&str>,
 ) -> String {
     let base = format!(
-        r#"You are {reviewer_name}, an extremely rigorous and adversarial code reviewer.
-Your opponent is {reviewee_name}. You must find every flaw, vulnerability, bad practice,
-and design issue in the code below. Be harsh but constructive. Do not hold back.
+        r#"You are {reviewer_name} in a FREESTYLE RAP BATTLE of code reviews.
+Your opponent is {reviewee_name}. This is a rap battle — every line you write MUST rhyme.
+You are a code reviewer who spits bars. Your review must be technically accurate AND
+rhyme like a freestyle rap. Mix code review content with rap battle disses.
 
-## Target File: {target_file}
+## The Beat (Target File): {target_file}
 
-```{file_content}
+```
+{file_content}
 ```
 
-## Your Task
-Perform a thorough adversarial code review. Cover:
+## Your Verse (Turn {turn}/{max_turns})
+Drop your review as a rap verse. Cover real code issues:
 1. Correctness — logic bugs, edge cases, error handling
 2. Security — vulnerabilities, injection, unsafe patterns
 3. Performance — unnecessary allocations, O(n²) traps, leaks
 4. Maintainability — naming, structure, complexity, DRY violations
 5. Style — idiomatic violations, consistency
 
-Be specific. Reference line numbers. Suggest concrete fixes.
+RULES:
+- Every verse MUST have rhymes (AABB, ABAB, or similar rhyme schemes)
+- Be technically specific — reference real line numbers and real issues
+- Diss your opponent's coding skills with style
+- Each verse should be 8-16 bars minimum
+- Keep it fun but the code review must be genuinely useful
+- Mix technical terms with rap wordplay
 "#
     );
 
     let context = if let Some(prev) = previous_review {
         format!(
             r#"
-## Previous Review by {reviewee_name} (Turn {}/{max_turns})
+## Opponent's Last Verse ({reviewee_name}, Turn {}/{max_turns})
 
 {prev}
 
-## Your Counter-Review
-{reviewee_name} produced the review above. Now it's YOUR turn (Turn {}/{max_turns}).
-Critique their review AND the original code. Find things they missed, things they got
-wrong, and new issues they didn't mention. Be even more thorough than they were.
+## Your Counter-Verse (Turn {turn}/{max_turns})
+{reviewee_name} just dropped that verse above. Now it's YOUR turn to respond.
+Your counter-verse MUST:
+- Call out specific things {reviewee_name} missed or got wrong (in rhyme!)
+- Find NEW issues they didn't mention at all
+- Diss their review quality AND their code analysis skills
+- Be even harder than the last verse — escalate the battle
+- Keep rhyming throughout
 "#,
             turn.saturating_sub(1),
-            turn,
+            max_turns,
         )
     } else {
-        format!(
-            "\n## Your Review (Turn {}/{max_turns})\nProvide your initial review.\n",
-            turn, max_turns
-        )
+        "\nThis is the opening verse. Set the tone. Establish dominance.\n".to_string()
     };
 
     let extra = if let Some(e) = extra_prompt {
@@ -144,7 +153,7 @@ wrong, and new issues they didn't mention. Be even more thorough than they were.
         String::new()
     };
 
-    format!("{base}{context}{extra}\nOutput only your review in Markdown.")
+    format!("{base}\n{context}{extra}\nOutput your review as a rap verse in Markdown.")
 }
 
 // ─── Agent runners ────────────────────────────────────────────────────────────

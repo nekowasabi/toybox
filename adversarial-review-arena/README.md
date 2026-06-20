@@ -1,6 +1,6 @@
-# Adversarial Review Arena 🤖⚔⚡
+# Adversarial Review Arena 🎤⚡🤖⚔
 
-> Tauri app that pits **Claude Code** against **Codex** in a head-to-head adversarial code review battle.
+> Tauri app that pits **Claude Code** against **Codex** in a freestyle rap battle of adversarial code reviews.
 
 ## What It Does
 
@@ -8,6 +8,27 @@
 2. Choose which agent goes first (Claude Code or Codex).
 3. Set the number of review turns.
 4. Hit **Start Battle** — the two agents take turns reviewing the file and then critiquing each other's reviews, getting progressively more adversarial each turn.
+
+### 🎤 Freestyle Rap Battle Format
+
+Each review is delivered as a **rap verse** with real rhymes:
+
+- Every verse must follow rhyme schemes (AABB, ABAB, etc.)
+- Technical code review content is mixed with rap wordplay and disses
+- Counter-verses call out what the opponent missed — in rhyme
+- The battle escalates each turn: harder disses, deeper analysis
+- 8-16 bars minimum per verse, but the code review must be genuinely useful
+
+Example flow:
+```
+Turn 1 — Claude Code (opening verse):
+  "Your error handling's weak, exceptions you don't catch,
+   Line 42's a memory leak, a bug you can't detach..."
+
+Turn 1 — Codex (counter-verse):
+  "Claude missed the SQL injection on line fifteen,
+   Your review's as weak as your code has been..."
+```
 
 The UI shows a split view:
 
@@ -68,14 +89,16 @@ Each turn gets progressively more adversarial — agents are prompted to find fl
 
 ### Prompts
 
-The Rust backend (`src-tauri/src/lib.rs`) constructs adversarial review prompts that instruct each agent to:
+The Rust backend (`src-tauri/src/lib.rs`) constructs **freestyle rap battle** prompts that instruct each agent to:
 
+- Write verses with real rhyme schemes (AABB, ABAB, etc.)
 - Find logic bugs, edge cases, error handling issues
 - Identify security vulnerabilities
 - Spot performance problems (O(n²) traps, leaks)
 - Call out maintainability issues (naming, structure, DRY)
 - Check for idiomatic/style violations
-- Critique the opponent's review for accuracy and completeness
+- Diss the opponent's review for accuracy and completeness — in rhyme
+- Escalate the battle each turn with harder disses and deeper analysis
 
 ### Agent Invocation
 
